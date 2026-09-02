@@ -1,0 +1,151 @@
+menu "DLMS Meter Configuration"
+
+    menu "UART / RS-485 Settings"
+        config DLMS_UART_TX_PIN
+            int "UART TX GPIO pin (to MAX485 DI)"
+            default 4
+            help
+                GPIO pin for UART TX, connected to MAX485 DI input.
+
+        config DLMS_UART_RX_PIN
+            int "UART RX GPIO pin (from MAX485 RO)"
+            default 5
+            help
+                GPIO pin for UART RX, connected to MAX485 RO output.
+
+        config DLMS_UART_RTS_PIN
+            int "UART RTS GPIO pin (to MAX485 DE and ~RE)"
+            default 6
+            help
+                GPIO pin for RS-485 direction control.
+                Connect to both DE and ~RE pins on MAX485.
+
+        config DLMS_UART_BAUD_RATE
+            int "UART baud rate"
+            default 9600
+            help
+                Serial baud rate for DLMS communication. Most meters use 9600.
+
+        config DLMS_UART_PORT_NUM
+            int "UART port number (0 or 1)"
+            default 1
+            range 0 1
+            help
+                ESP32-C3 has UART0 and UART1. Use UART1 for RS-485 to keep UART0 for console.
+    endmenu
+
+    menu "DLMS Protocol Settings"
+        config DLMS_CLIENT_ADDRESS
+            int "Client HDLC address"
+            default 16
+            help
+                Client SAP address. 16 (0x10) = Public Client, 1 = Management Client.
+
+        config DLMS_SERVER_LOGICAL_ADDRESS
+            int "Server logical device address"
+            default 1
+            help
+                Logical device address of the meter (usually 1).
+
+        config DLMS_SERVER_PHYSICAL_ADDRESS
+            int "Server physical device address"
+            default 1
+            help
+                Physical device address of the meter. Check your meter manual.
+
+        config DLMS_SERVER_ADDRESS_LENGTH
+            int "Server address length (1, 2, or 4 bytes)"
+            default 1
+            range 1 4
+            help
+                HDLC address length. 1 = logical only, 2 = logical+physical, 4 = extended.
+
+        config DLMS_AUTH_ENABLED
+            bool "Enable authentication"
+            default n
+            help
+                Enable DLMS LOW level authentication (password).
+
+        config DLMS_AUTH_PASSWORD
+            string "Authentication password"
+            default "00000000"
+            depends on DLMS_AUTH_ENABLED
+            help
+                Cleartext password for LOW level authentication (usually 8 characters).
+
+        config DLMS_POLL_INTERVAL_SEC
+            int "Polling interval (seconds)"
+            default 60
+            range 5 3600
+            help
+                How often to poll the meter for new readings.
+
+        config DLMS_PUSH_MODE_ENABLED
+            bool "Enable PUSH mode listener"
+            default n
+            help
+                Enable passive listening for meter-originated PUSH data frames.
+                Can be used alongside polling mode.
+
+        config DLMS_RECEIVE_TIMEOUT_MS
+            int "Receive timeout (ms)"
+            default 3000
+            range 500 10000
+            help
+                Maximum time to wait for a response frame from the meter.
+
+        config DLMS_INTER_FRAME_DELAY_MS
+            int "Inter-frame delay (ms)"
+            default 50
+            range 10 500
+            help
+                Delay between consecutive GET requests within a polling cycle.
+    endmenu
+
+    menu "Wi-Fi Settings"
+        config WIFI_SSID
+            string "Wi-Fi SSID"
+            default "MyNetwork"
+            help
+                Wi-Fi network name to connect to.
+
+        config WIFI_PASSWORD
+            string "Wi-Fi Password"
+            default "MyPassword"
+            help
+                Wi-Fi network password.
+
+        config WIFI_MAXIMUM_RETRY
+            int "Maximum Wi-Fi reconnection retries"
+            default 10
+            range 1 100
+    endmenu
+
+    menu "MQTT Settings"
+        config MQTT_BROKER_URI
+            string "MQTT Broker URI"
+            default "mqtt://192.168.1.100:1883"
+            help
+                MQTT broker URI (e.g., mqtt://host:port or mqtts://host:port).
+
+        config MQTT_TOPIC_PREFIX
+            string "MQTT topic prefix"
+            default "dlms/meter1"
+            help
+                Base topic for publishing. Readings go to {prefix}/state,
+                status to {prefix}/status.
+
+        config MQTT_HA_DISCOVERY_ENABLED
+            bool "Enable Home Assistant MQTT auto-discovery"
+            default y
+            help
+                Publish Home Assistant auto-discovery messages on MQTT connect.
+
+        config MQTT_HA_DISCOVERY_PREFIX
+            string "Home Assistant discovery prefix"
+            default "homeassistant"
+            depends on MQTT_HA_DISCOVERY_ENABLED
+    endmenu
+
+endmenu
+

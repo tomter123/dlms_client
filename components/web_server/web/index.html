@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DLMS Meter Dashboard</title>
+    <style>
+        :root { --bg: #1a1a2e; --card-bg: #16213e; --accent: #e94560; --text: #ffffff; --text-muted: #888; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        header { background-color: var(--card-bg); padding: 1rem 2rem; border-bottom: 2px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
+        .status-bar { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem 2rem; background-color: rgba(22, 33, 62, 0.5); font-size: 0.9rem; }
+        .status-item { display: flex; align-items: center; gap: 0.5rem; }
+        .status-label { color: var(--text-muted); }
+        .status-val { font-weight: bold; }
+        main { padding: 2rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem; }
+        .card { background-color: var(--card-bg); border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.2s; border-left: 4px solid #444; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3); }
+        .card.voltage { border-left-color: #4facfe; }
+        .card.current { border-left-color: #43e97b; }
+        .card.power { border-left-color: #fa709a; }
+        .card.energy { border-left-color: #b185fa; }
+        .card-name { font-size: 1.1rem; margin-bottom: 0.5rem; font-weight: 600; }
+        .card-value { font-size: 2rem; font-weight: bold; margin: 0.5rem 0; }
+        .card-unit { font-size: 1rem; color: var(--text-muted); font-weight: normal; }
+        .card-obis { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; margin-top: auto; }
+        #message { text-align: center; font-size: 1.2rem; color: var(--text-muted); margin-top: 2rem; }
+        .timestamp { text-align: right; font-size: 0.8rem; color: var(--text-muted); margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DLMS Meter Dashboard</h1>
+    </header>
+    <div class="status-bar" id="statusBar">
+        <div class="status-item"><span class="status-label">Uptime:</span><span class="status-val" id="st-uptime">-</span></div>
+        <div class="status-item"><span class="status-label">Wi-Fi RSSI:</span><span class="status-val" id="st-wifi">-</span></div>
+        <div class="status-item"><span class="status-label">DLMS State:</span><span class="status-val" id="st-dlms">-</span></div>
+        <div class="status-item"><span class="status-label">MQTT:</span><span class="status-val" id="st-mqtt">-</span></div>
+        <div class="status-item"><span class="status-label">Free Heap:</span><span class="status-val" id="st-heap">-</span></div>
+    </div>
+    <main>
+        <div id="message">Connecting... fetching data.</div>
+        <div class="grid" id="readingsGrid"></div>
+        <div class="timestamp" id="lastUpdate"></div>
+    </main>
+    <script>
+        let lastUpdateTime = Date.now();
+        
+        function formatUptime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        function getCardClass(name, unit) {
+            name = name.toLowerCase();
+            unit = (unit || '').toLowerCase();
+            if (unit.includes('v') || name.includes('voltage')) return 'voltage';
+            if (unit.includes('a') || name.includes('current')) return 'current';
+            if (unit.includes('w') || name.includes('power')) return 'power';
+            if (unit.includes('wh') || name.includes('energy')) return 'energy';
+            return '';
+        }
+
+        async function fetchReadings() {
+            try {
+                const res = await fetch('/api/v1/meter/readings');
+                if (!res.ok) throw new Error('Network response was not ok');
+                const data = await res.json();
+                
+                const grid = document.getElementById('readingsGrid');
+                const msg = document.getElementById('message');
+                
+                if (!data || data.length === 0) {
+                    msg.style.display = 'block';
+                    msg.textContent = 'No readings available yet.';
+                    grid.innerHTML = '';
+                } else {
+                    msg.style.display = 'none';
+                    grid.innerHTML = data.map(item => `
+                        <div class="card ${getCardClass(item.name, item.unit)}">
+                            <div class="card-name">${item.name}</div>
+                            <div class="card-value">${Number(item.value).toFixed(2)} <span class="card-unit">${item.unit}</span></div>
+                            <div class="card-obis">${item.obis}</div>
+                        </div>
+                    `).join('');
+                    lastUpdateTime = Date.now();
+                }
+            } catch (err) {
+                console.error('Failed to fetch readings', err);
+                document.getElementById('message').style.display = 'block';
+                document.getElementById('message').textContent = 'Error fetching data: ' + err.message;
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/v1/meter/status');
+                if (!res.ok) throw new Error('Network response was not ok');
+                const data = await res.json();
+                
+                document.getElementById('st-uptime').textContent = formatUptime(data.uptime_sec);
+                document.getElementById('st-wifi').textContent = data.wifi_rssi + ' dBm';
+                document.getElementById('st-dlms').textContent = data.dlms_state;
+                document.getElementById('st-mqtt').textContent = data.mqtt_connected ? 'Connected' : 'Disconnected';
+                document.getElementById('st-heap').textContent = (data.free_heap / 1024).toFixed(1) + ' KB';
+            } catch (err) {
+                console.error('Failed to fetch status', err);
+            }
+        }
+
+        function updateTimestamp() {
+            const seconds = Math.floor((Date.now() - lastUpdateTime) / 1000);
+            document.getElementById('lastUpdate').textContent = `Last updated: ${seconds} seconds ago`;
+        }
+
+        fetchReadings();
+        fetchStatus();
+        
+        setInterval(fetchReadings, 3000);
+        setInterval(fetchStatus, 10000);
+        setInterval(updateTimestamp, 1000);
+    </script>
+</body>
+</html>

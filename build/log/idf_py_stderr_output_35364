@@ -1,0 +1,10 @@
+info: INFO: Symbol IDF_TARGET_LINUX defined in multiple locations (see below). Please check if this is a correct behavior or a random name match:
+    C:\Espressif\esp-idf\Kconfig:162
+    C:\Espressif\esp-idf\Kconfig:78
+CMake Error at run_serial_tool.cmake:66 (message):
+  
+  C:/Users/MakerLab/.espressif/python_env/idf5.3_py3.14_env/Scripts/python.exe;;C:/Espressif/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32c3
+  failed.
+
+
+

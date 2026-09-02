@@ -1,0 +1,13 @@
+[0/1] cmd.exe /C "cd /D C:\Espressif\esp-idf\components\partition_table && C:\Users\MakerLab\.espressif\tools\cmake\3.24.0\bin\cmake.exe -D IDF_PATH=C:/Espressif/esp-idf -D SERIAL_TOOL=C:/Users/MakerLab/.espressif/python_env/idf5.3_py3.14_env/Scripts/python.exe;;C:/Espressif/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32c3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;--no-stub;write_flash;@partition-table-flash_args -D WORKING_DIRECTORY=C:/Users/MakerLab/Projekti/DLMS/build -esptool.py --chip esp32c3 -p COM4 -b 460800 --before=default_reset --after=hard_reset --no-stub write_flash --flash_mode dio --flash_freq 80m --flash_size 4MB 0x8000 partition_table/partition-table.bin
+esptool.py v4.12.0
+Serial port COM4
+
+A fatal error occurred: Could not open COM4, the port is busy or doesn't exist.
+(could not open port 'COM4': PermissionError(13, 'Access is denied.', None, 5))
+
+Hint: Check if the port is not used by another task
+
+P C:/Espressif/esp-idf/components/esptool_py/run_serial_tool.cmake"
+FAILED: esp-idf/partition_table/CMakeFiles/partition-table-flash C:/Users/MakerLab/Projekti/DLMS/build/esp-idf/partition_table/CMakeFiles/partition-table-flash 
+cmd.exe /C "cd /D C:\Espressif\esp-idf\components\partition_table && C:\Users\MakerLab\.espressif\tools\cmake\3.24.0\bin\cmake.exe -D IDF_PATH=C:/Espressif/esp-idf -D SERIAL_TOOL=C:/Users/MakerLab/.espressif/python_env/idf5.3_py3.14_env/Scripts/python.exe;;C:/Espressif/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32c3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;--no-stub;write_flash;@partition-table-flash_args -D WORKING_DIRECTORY=C:/Users/MakerLab/Projekti/DLMS/build -P C:/Espressif/esp-idf/components/esptool_py/run_serial_tool.cmake"
+ninja: build stopped: subcommand failed.
