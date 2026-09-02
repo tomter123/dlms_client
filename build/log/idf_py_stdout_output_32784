@@ -1,0 +1,40 @@
+[1/19] Building C object esp-idf/dlms_client/CMakeFiles/__idf_dlms_client.dir/dlms_hdlc.c.obj
+[2/19] Building C object esp-idf/dlms_client/CMakeFiles/__idf_dlms_client.dir/dlms_axdr.c.obj
+[3/19] Building C object esp-idf/dlms_client/CMakeFiles/__idf_dlms_client.dir/dlms_helpers.c.obj
+[4/19] Building C object esp-idf/mqtt_publisher/CMakeFiles/__idf_mqtt_publisher.dir/mqtt_publisher.c.obj
+[5/19] Performing build step for 'bootloader'
+[1/1] cmd.exe /C "cd /D C:\Users\MakerLab\Projekti\DLMS\build\bootloader\esp-idf\esptool_py && C:\Users\MakerLab\.espressif\python_env\idf5.3_py3.14_env\Scripts\python.exe C:/Espressif/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 C:/Users/MakerLab/Projekti/DLMS/build/bootloader/bootloader.bin"
+Bootloader binary size 0x5130 bytes. 0x2ed0 bytes (37%) free.
+[6/17] Building C object esp-idf/dlms_client/CMakeFiles/__idf_dlms_client.dir/dlms_client.c.obj
+[7/17] Linking C static library esp-idf\dlms_client\libdlms_client.a
+[8/17] Building C object esp-idf/web_server/CMakeFiles/__idf_web_server.dir/web_server.c.obj
+[9/17] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/main.c.obj
+[10/17] Linking C static library esp-idf\mqtt_publisher\libmqtt_publisher.a
+[11/17] Linking C static library esp-idf\web_server\libweb_server.a
+[12/17] Linking C static library esp-idf\main\libmain.a
+[13/17] Generating ld/sections.ld
+info: INFO: Symbol IDF_TARGET_LINUX defined in multiple locations (see below). Please check if this is a correct behavior or a random name match:
+    C:\Espressif\esp-idf\Kconfig:78
+    C:\Espressif\esp-idf\Kconfig:162
+[14/17] Linking CXX executable dlms_meter.elf
+[15/17] Generating binary image from built executable
+esptool.py v4.12.0
+Creating esp32c3 image...
+Merged 1 ELF section
+Successfully created esp32c3 image.
+Generated C:/Users/MakerLab/Projekti/DLMS/build/dlms_meter.bin
+[16/17] cmd.exe /C "cd /D C:\Users\MakerLab\Projekti\DLMS\build\esp-idf\esptool_py && C:\Users\MakerLab\.espressif\python_env\idf5.3_py3.14_env\Scripts\python.exe C:/Espressif/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app C:/Users/MakerLab/Projekti/DLMS/build/partition_table/partition-table.bin C:/Users/MakerLab/Projekti/DLMS/build/dlms_meter.bin"
+dlms_meter.bin binary size 0xf2120 bytes. Smallest app partition is 0x180000 bytes. 0x8dee0 bytes (37%) free.
+[16/17] cmd.exe /C "cd /D C:\Espressif\esp-idf\components\esptool_py && C:\Users\MakerLab\.espressif\tools\cmake\3.24.0\bin\cmake.exe -D IDF_PATH=C:/Espressif/esp-idf -esptool.py --chip esp32c3 -p COM5 -b 460800 --before=default_reset --after=hard_reset --no-stub write_flash --flash_mode dio --flash_freq 80m --flash_size 4MB 0x0 bootloader/bootloader.bin 0x10000 dlms_meter.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.12.0
+Serial port COM5
+
+A fatal error occurred: Could not open COM5, the port is busy or doesn't exist.
+(could not open port 'COM5': PermissionError(13, 'Access is denied.', None, 5))
+
+Hint: Check if the port is not used by another task
+
+D SERIAL_TOOL=C:/Users/MakerLab/.espressif/python_env/idf5.3_py3.14_env/Scripts/python.exe;;C:/Espressif/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32c3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;--no-stub;write_flash;@flash_args -D WORKING_DIRECTORY=C:/Users/MakerLab/Projekti/DLMS/build -P C:/Espressif/esp-idf/components/esptool_py/run_serial_tool.cmake"
+FAILED: CMakeFiles/flash C:/Users/MakerLab/Projekti/DLMS/build/CMakeFiles/flash 
+cmd.exe /C "cd /D C:\Espressif\esp-idf\components\esptool_py && C:\Users\MakerLab\.espressif\tools\cmake\3.24.0\bin\cmake.exe -D IDF_PATH=C:/Espressif/esp-idf -D SERIAL_TOOL=C:/Users/MakerLab/.espressif/python_env/idf5.3_py3.14_env/Scripts/python.exe;;C:/Espressif/esp-idf/components/esptool_py/esptool/esptool.py;--chip;esp32c3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;--no-stub;write_flash;@flash_args -D WORKING_DIRECTORY=C:/Users/MakerLab/Projekti/DLMS/build -P C:/Espressif/esp-idf/components/esptool_py/run_serial_tool.cmake"
+ninja: build stopped: subcommand failed.
