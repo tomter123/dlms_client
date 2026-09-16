@@ -166,6 +166,7 @@ bool dlms_hdlc_parse_frame(const uint8_t *data, size_t len, dlms_hdlc_frame_t *f
     frame->info_len = 0;
     frame->is_iframe = false;
     frame->is_rr = false;
+    frame->is_ui = false;
     
     if ((frame->control & 0x01) == 0) {
         frame->is_iframe = true;
@@ -174,6 +175,8 @@ bool dlms_hdlc_parse_frame(const uint8_t *data, size_t len, dlms_hdlc_frame_t *f
     } else if ((frame->control & 0x0F) == 0x01) {
         frame->is_rr = true;
         frame->recv_seq = (frame->control >> 5) & 0x07;
+    } else if (frame->control == 0x13) {
+        frame->is_ui = true;
     }
     
     if (frame_len > header_len + 2) {
@@ -186,10 +189,17 @@ bool dlms_hdlc_parse_frame(const uint8_t *data, size_t len, dlms_hdlc_frame_t *f
         size_t info_field_len = len - 1 - 2 - idx;
         
         if (info_field_len > 0) {
-            if (info_field_len >= 3 && data[idx] == DLMS_LLC_RESPONSE_DSAP && data[idx+1] == DLMS_LLC_RESPONSE_SSAP && data[idx+2] == DLMS_LLC_CONTROL) {
-                idx += 3;
-                info_field_len -= 3;
-            }
+                          // LLC for response (E6 E7 00) or UI push (E6 E6 00)
+              if (info_field_len >= 3 && ((data[idx] == DLMS_LLC_RESPONSE_DSAP && (data[idx+1] == DLMS_LLC_RESPONSE_SSAP || data[idx+1] == DLMS_LLC_REQUEST_SSAP)) || data[idx] == 0xE0) && data[idx+2] == DLMS_LLC_CONTROL) {
+                  idx += 3;
+                  info_field_len -= 3;
+              }
+              // Double LLC quirk for E450 push
+              if (info_field_len >= 3 && data[idx] == 0xE0 && data[idx+2] == 0x00) {
+                  idx += 3;
+                  info_field_len -= 3;
+              }
+
             
             if (info_field_len > sizeof(frame->info)) {
                 ESP_LOGE(TAG, "Info field too large");

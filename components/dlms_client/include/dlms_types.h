@@ -22,7 +22,7 @@ extern "C" {
 #define DLMS_MAX_NAME_LEN          48
 #define DLMS_MAX_STR_VALUE_LEN     128
 #define DLMS_OBIS_CODE_LEN         6
-#define DLMS_OBIS_STR_LEN          20   /* "255.255.255.255.255.255\0" */
+#define DLMS_OBIS_STR_LEN          32   /* "255.255.255.255.255.255\0" */
 #define DLMS_RX_BUFFER_SIZE        2048
 #define DLMS_TX_BUFFER_SIZE        512
 #define DLMS_HDLC_FLAG             0x7E
@@ -137,7 +137,7 @@ typedef struct {
 /* ─── OBIS Register Definition (input configuration) ─────────────── */
 typedef struct {
     uint8_t    obis[6];
-    char       obis_str[24];
+    char       obis_str[32];
     uint16_t   short_name;     /* 16-bit Base Name for SN referencing */
     uint16_t   class_id;       /* 1=Data, 3=Register, 4=ExtendedRegister */
     uint8_t    attribute_id;   /* 2=value, 3=scaler_unit */
@@ -154,6 +154,7 @@ typedef struct {
     size_t   info_len;                   /* Length of information field */
     bool     is_iframe;
     bool     is_rr;
+    bool     is_ui;
     uint8_t  send_seq;    /* N(S) from I-frame */
     uint8_t  recv_seq;    /* N(R) from I-frame or RR */
 } dlms_hdlc_frame_t;

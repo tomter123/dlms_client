@@ -1,0 +1,29 @@
+[1/9] Performing build step for 'bootloader'
+[1/1] cmd.exe /C "cd /D C:\Users\MakerLab\Projekti\DLMS\build\bootloader\esp-idf\esptool_py && C:\Users\MakerLab\.espressif\python_env\idf5.3_py3.14_env\Scripts\python.exe C:/Espressif/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 C:/Users/MakerLab/Projekti/DLMS/build/bootloader/bootloader.bin"
+Bootloader binary size 0x5130 bytes. 0x2ed0 bytes (37%) free.
+[2/7] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/main.c.obj
+C:/Users/MakerLab/Projekti/DLMS/main/main.c: In function 'app_main':
+C:/Users/MakerLab/Projekti/DLMS/main/main.c:146:26: warning: unused variable 'dlms_cfg' [-Wunused-variable]
+  146 |     dlms_client_config_t dlms_cfg = {
+      |                          ^~~~~~~~
+C:/Users/MakerLab/Projekti/DLMS/main/main.c: At top level:
+C:/Users/MakerLab/Projekti/DLMS/main/main.c:67:13: warning: 'register_default_obis' defined but not used [-Wunused-function]
+   67 | static void register_default_obis(dlms_client_t *client)
+      |             ^~~~~~~~~~~~~~~~~~~~~
+C:/Users/MakerLab/Projekti/DLMS/main/main.c:42:13: warning: 'on_dlms_readings' defined but not used [-Wunused-function]
+   42 | static void on_dlms_readings(const dlms_reading_t *readings, uint8_t count,
+      |             ^~~~~~~~~~~~~~~~
+[3/7] Linking C static library esp-idf\main\libmain.a
+[4/7] Generating ld/sections.ld
+info: INFO: Symbol IDF_TARGET_LINUX defined in multiple locations (see below). Please check if this is a correct behavior or a random name match:
+    C:\Espressif\esp-idf\Kconfig:162
+    C:\Espressif\esp-idf\Kconfig:78
+[5/7] Linking CXX executable dlms_meter.elf
+[6/7] Generating binary image from built executable
+esptool.py v4.12.0
+Creating esp32c3 image...
+Merged 1 ELF section
+Successfully created esp32c3 image.
+Generated C:/Users/MakerLab/Projekti/DLMS/build/dlms_meter.bin
+[7/7] cmd.exe /C "cd /D C:\Users\MakerLab\Projekti\DLMS\build\esp-idf\esptool_py && C:\Users\MakerLab\.espressif\python_env\idf5.3_py3.14_env\Scripts\python.exe C:/Espressif/esp-idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app C:/Users/MakerLab/Projekti/DLMS/build/partition_table/partition-table.bin C:/Users/MakerLab/Projekti/DLMS/build/dlms_meter.bin"
+dlms_meter.bin binary size 0xdb7e0 bytes. Smallest app partition is 0x180000 bytes. 0xa4820 bytes (43%) free.

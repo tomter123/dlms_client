@@ -3,6 +3,7 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
+#include "nvs.h"
 #include "esp_netif.h"
 #include <string.h>
 
@@ -42,16 +43,9 @@ esp_err_t wifi_manager_init(void)
 {
     s_wifi_event_group = xEventGroupCreate();
 
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
     ESP_ERROR_CHECK(esp_netif_init());
-    // ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_sta();
+    esp_netif_create_default_wifi_ap();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
@@ -69,49 +63,40 @@ esp_err_t wifi_manager_init(void)
                                                         NULL,
                                                         &instance_got_ip));
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = CONFIG_WIFI_SSID,
-            .password = CONFIG_WIFI_PASSWORD,
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+    wifi_config_t wifi_config_ap = {
+        .ap = {
+            .ssid = "DLMS-Meter-Config",
+            .ssid_len = strlen("DLMS-Meter-Config"),
+            .channel = 1,
+            .password = "admin123",
+            .max_connection = 4,
+            .authmode = WIFI_AUTH_WPA2_PSK
         },
     };
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    wifi_config_t wifi_config_sta = {0};
+    bool has_sta_config = true;
+    strcpy((char*)wifi_config_sta.sta.ssid, "MakerLab");
+    strcpy((char*)wifi_config_sta.sta.password, "FrankoMerkatori");
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config_ap));
+    if (has_sta_config) {
+        ESP_LOGI(TAG, "Connecting to saved WiFi: %s", wifi_config_sta.sta.ssid);
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config_sta));
+    }
+    
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "wifi_init_sta finished.");
+    ESP_LOGI(TAG, "wifi_init_apsta finished.");
     return ESP_OK;
 }
 
-bool wifi_manager_is_connected(void)
-{
-    return s_is_connected;
-}
-
-int8_t wifi_manager_get_rssi(void)
-{
-    if (!s_is_connected) {
-        return 0;
-    }
-    wifi_ap_record_t ap_info;
-    if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
-        return ap_info.rssi;
-    }
-    return 0;
-}
-
-esp_err_t wifi_manager_get_ip_str(char *buf, size_t len)
-{
-    if (!s_is_connected) {
-        return ESP_ERR_INVALID_STATE;
-    }
+bool wifi_manager_is_connected(void) { return s_is_connected; }
+int8_t wifi_manager_get_rssi(void) { return 0; }
+esp_err_t wifi_manager_get_ip_str(char *buf, size_t len) { 
+    if (!s_is_connected) return ESP_ERR_INVALID_STATE;
     strncpy(buf, s_ip_addr, len);
-    return ESP_OK;
+    return ESP_OK; 
 }
-
-EventGroupHandle_t wifi_manager_get_event_group(void)
-{
-    return s_wifi_event_group;
-}
+EventGroupHandle_t wifi_manager_get_event_group(void) { return s_wifi_event_group; }

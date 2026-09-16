@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DLMS Smart Gateway</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; margin-top: 0; }
+        /* TABS */
+        .tabs { display: flex; border-bottom: 2px solid #ddd; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; font-weight: bold; color: #666; }
+        .tab:hover { color: #0056b3; }
+        .tab.active { border-bottom-color: #0056b3; color: #0056b3; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* FORMS */
+        .section { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .section h3 { margin-top: 0; color: #444; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 500; margin-bottom: 5px; font-size: 14px; }
+        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-row > .form-group { flex: 1; margin-bottom: 0; }
+        button { background: #0056b3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
+        button:hover { background: #004494; }
+        
+        /* DASHBOARD */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .card { background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 4px; text-align: center; }
+        .card h4 { margin: 0 0 10px 0; color: #666; font-size: 14px; }
+        .card .value { font-size: 24px; font-weight: bold; color: #0056b3; }
+        
+        /* UTILS */
+        .hidden { display: none; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .checkbox-group input { width: auto; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>DLMS Smart Gateway</h1>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('config')">Configuration</div>
+        <div class="tab" onclick="switchTab('dashboard')">Dashboard</div>
+        <div class="tab" onclick="switchTab('debug')">Debugging</div>
+    </div>
+
+    <!-- CONFIGURATION TAB -->
+    <div id="tab-config" class="tab-content active">
+        <form action="/save" method="POST" id="config_form">
+            <!-- MQTT Settings -->
+            <div class="section">
+                <h3>1. Data Export (MQTT)</h3>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="mqtt_enable" name="mqtt_enable" onchange="toggleMqtt()" checked>
+                    <label style="margin:0;">Enable MQTT Publisher</label>
+                </div>
+                <div id="mqtt_settings">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Broker URI (mqtt://ip:port)</label>
+                            <input type="text" name="mqtt_uri" value="mqtt://192.168.0.100:1883">
+                        </div>
+                        <div class="form-group">
+                            <label>Topic Prefix</label>
+                            <input type="text" name="mqtt_topic" value="dlms/meter">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="mqtt_user">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" name="mqtt_pass">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1;">
+                            <label>MQTT Payload Template (JSON)</label>
+                            <p style="font-size:12px; color:#666; margin-top:0;">Use OBIS codes in braces e.g., <code>{1.0.1.7.0.255}</code></p>
+                            <textarea id="mqtt_tpl" name="mqtt_tpl" rows="10" style="width:100%; font-family:monospace; font-size:12px; padding:10px; border:1px solid #ccc; border-radius:4px;"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meter Connection Settings -->
+            <div class="section">
+                <h3>2. Meter Connection</h3>
+                <div class="form-group">
+                    <label>Meter Type Profile</label>
+                    <select id="meter_type" name="meter_type" onchange="toggleMeterSettings()">
+                        <option value="e570" selected>Landis+Gyr E570 / ISKRA AM550 (Standard DLMS)</option>
+                        <option value="e450">Landis+Gyr E450 (Push DLMS over P1)</option>
+                        <option value="mbus">M-Bus (Wired)</option>
+                    </select>
+                </div>
+
+                <!-- E570 Settings (Standard DLMS) -->
+                <div id="settings_e570" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Baud Rate</label>
+                            <select name="baud">
+                                <option value="9600" selected>9600</option>
+                                <option value="115200">115200</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Client Address</label>
+                            <input type="number" name="client_addr" value="16">
+                        </div>
+                        <div class="form-group">
+                            <label>Logical Server Addr</label>
+                            <input type="number" name="server_logical" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Physical Server Addr</label>
+                            <input type="number" name="server_physical" value="17">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Bits</label>
+                            <select name="databits">
+                                <option value="8" selected>8</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Parity</label>
+                            <select name="parity">
+                                <option value="none" selected>None</option>
+                                <option value="even">Even</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Stop Bits</label>
+                            <select name="stopbits">
+                                <option value="1" selected>1</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Authentication Mode</label>
+                            <select id="dlms_auth" name="auth" onchange="toggleAuth()">
+                                <option value="none" selected>None</option>
+                                <option value="low">Low (Password)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="auth_low" style="display:none;">
+                            <label>Password (ASCII/Hex)</label>
+                            <input type="text" name="pass" placeholder="e.g. 12345678">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- E450 Settings -->
+                <div id="settings_e450" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Baud Rate</label>
+                            <select name="e450_baud">
+                                <option value="2400" selected>2400</option>
+                                <option value="9600">9600</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Data Bits</label>
+                            <select name="e450_databits">
+                                <option value="8" selected>8</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Parity</label>
+                            <select name="e450_parity">
+                                <option value="none" selected>None</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Stop Bits</label>
+                            <select name="e450_stopbits">
+                                <option value="1" selected>1</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- M-Bus Settings -->
+                <div id="settings_mbus" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Baud Rate</label>
+                            <select name="mbus_baud">
+                                <option value="2400" selected>2400</option>
+                                <option value="9600">9600</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Meter Address</label>
+                            <input type="number" name="mbus_addr" value="254">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Data Bits</label>
+                            <select name="mbus_databits">
+                                <option value="8" selected>8</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Parity</label>
+                            <select name="mbus_parity">
+                                <option value="even" selected>Even</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Stop Bits</label>
+                            <select name="mbus_stopbits">
+                                <option value="1" selected>1</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>3. Dashboard Visibility</h3>
+                <p style="font-size: 13px; color: #555; margin-bottom:10px;">Select which metrics to hide from the dashboard.</p>
+                <input type="hidden" name="hidden_obis" id="hidden_obis" value="">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;" id="visibility_checks">
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.1.7.0.255"> Active Power (+A)</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.2.7.0.255"> Active Power (-A)</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.3.7.0.255"> Reactive Power (+R)</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.4.7.0.255"> Reactive Power (-R)</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.31.7.0.255"> Current L1</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.51.7.0.255"> Current L2</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.71.7.0.255"> Current L3</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.32.7.0.255"> Voltage L1</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.52.7.0.255"> Voltage L2</label>
+                    <label><input type="checkbox" onchange="updateHiddenObis()" value="1.0.72.7.0.255"> Voltage L3</label>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button type="submit">Save & Reboot</button>
+                <button type="button" onclick="exportConfig()" style="background:#28a745;">Export JSON</button>
+                <button type="button" onclick="document.getElementById('import_file').click()" style="background:#17a2b8;">Import JSON</button>
+                <input type="file" id="import_file" style="display:none;" accept=".json" onchange="importConfig(event)">
+            </div>
+        </form>
+    </div>
+    
+    <!-- DASHBOARD TAB -->
+    <div id="tab-dashboard" class="tab-content">
+        <h3>Live Meter Readings</h3>
+        <div class="grid" id="dashboard_grid">
+            <div class="card"><h4>Loading data...</h4><div class="value">--</div></div>
+        </div>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 300px;">
+                <h3 style="margin-top: 30px;">Power Graph</h3>
+                <canvas id="powerChart" height="150"></canvas>
+            </div>
+            <div style="flex: 1; min-width: 300px;">
+                <h3 style="margin-top: 30px;">Voltage Graph</h3>
+                <canvas id="voltageChart" height="150"></canvas>
+            </div>
+            <div style="flex: 1; min-width: 300px;">
+                <h3 style="margin-top: 30px;">Current Graph</h3>
+                <canvas id="currentChart" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- DEBUGGING TAB -->
+    <div id="tab-debug" class="tab-content">
+        <div style="margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+            <h3>Diagnostics & Logs</h3>
+            <div>
+                <button onclick="clearDebug()" style="width:auto; background:#dc3545; padding:8px 15px;">Clear Buffer</button>
+            </div>
+        </div>
+        <div style="display:flex; gap:20px;">
+            <div style="flex:1;">
+                <h4>Parsed Logs & Trace (ASCII)</h4>
+                <div style="background:#1e1e1e; color:#d4d4d4; padding:10px; border-radius:4px; font-family:monospace; font-size:12px; height:400px; overflow-y:auto; white-space:pre-wrap;" id="trace_out"></div>
+            </div>
+            <div style="flex:1;">
+                <h4>Raw Serial Stream (HEX)</h4>
+                <div style="background:#1e1e1e; color:#00ff00; padding:10px; border-radius:4px; font-family:monospace; font-size:12px; height:400px; overflow-y:auto; word-break:break-all;" id="debug_out"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector('.tab[onclick="switchTab(\'' + tabId + '\')"]').classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function toggleMqtt() {
+        const enabled = document.getElementById('mqtt_enable').checked;
+        document.getElementById('mqtt_settings').style.display = enabled ? 'block' : 'none';
+    }
+
+    function toggleMeterSettings() {
+        const type = document.getElementById('meter_type').value;
+        document.getElementById('settings_e570').style.display = (type === 'e570') ? 'block' : 'none';
+        document.getElementById('settings_e450').style.display = (type === 'e450') ? 'block' : 'none';
+        document.getElementById('settings_mbus').style.display = (type === 'mbus') ? 'block' : 'none';
+    }
+
+    function toggleAuth() {
+        const auth = document.getElementById('dlms_auth').value;
+        document.getElementById('auth_low').style.display = (auth === 'low') ? 'block' : 'none';
+    }
+
+    function updateHiddenObis() {
+        const hidden = Array.from(document.querySelectorAll('#visibility_checks input:checked')).map(cb => cb.value);
+        document.getElementById('hidden_obis').value = hidden.join(',');
+    }
+
+    let pChart, vChart, cChart;
+    let timeLabels = [];
+    let pData = { active: [], reactive: [] };
+    let vData = { l1: [], l2: [], l3: [] };
+    let cData = { l1: [], l2: [], l3: [] };
+
+    function initChart() {
+        const pCtx = document.getElementById('powerChart').getContext('2d');
+        pChart = new Chart(pCtx, {
+            type: 'line',
+            data: { labels: timeLabels, datasets: [
+                { label: 'Active (+A)', data: pData.active, borderColor: '#0056b3', tension: 0.1 },
+                { label: 'Reactive (+R)', data: pData.reactive, borderColor: '#ff8c00', tension: 0.1 }
+            ]},
+            options: { responsive: true, animation: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        const vCtx = document.getElementById('voltageChart').getContext('2d');
+        vChart = new Chart(vCtx, {
+            type: 'line',
+            data: { labels: timeLabels, datasets: [
+                { label: 'L1', data: vData.l1, borderColor: '#dc3545', tension: 0.1 },
+                { label: 'L2', data: vData.l2, borderColor: '#28a745', tension: 0.1 },
+                { label: 'L3', data: vData.l3, borderColor: '#ffc107', tension: 0.1 }
+            ]},
+            options: { responsive: true, animation: false, scales: { y: { min: 200, max: 250 } } }
+        });
+
+        const cCtx = document.getElementById('currentChart').getContext('2d');
+        cChart = new Chart(cCtx, {
+            type: 'line',
+            data: { labels: timeLabels, datasets: [
+                { label: 'L1', data: cData.l1, borderColor: '#dc3545', tension: 0.1 },
+                { label: 'L2', data: cData.l2, borderColor: '#28a745', tension: 0.1 },
+                { label: 'L3', data: cData.l3, borderColor: '#ffc107', tension: 0.1 }
+            ]},
+            options: { responsive: true, animation: false, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    const obisNames = {
+        '1.0.1.7.0.255': 'Active Power (+A)',
+        '1.0.2.7.0.255': 'Active Power (-A)',
+        '1.0.3.7.0.255': 'Reactive Power (+R)',
+        '1.0.4.7.0.255': 'Reactive Power (-R)',
+        '1.0.31.7.0.255': 'Current L1',
+        '1.0.51.7.0.255': 'Current L2',
+        '1.0.71.7.0.255': 'Current L3',
+        '1.0.32.7.0.255': 'Voltage L1',
+        '1.0.52.7.0.255': 'Voltage L2',
+        '1.0.72.7.0.255': 'Voltage L3',
+        '0.0.96.1.2.255': 'Device ID',
+        '0.0.42.0.0.255': 'Logical Name'
+    };
+
+    function fetchDashboard() {
+        if (!document.getElementById('tab-dashboard').classList.contains('active')) return;
+        fetch('/api/data').then(r => r.json()).then(data => {
+            const grid = document.getElementById('dashboard_grid');
+            grid.innerHTML = '';
+            
+            const now = new Date();
+            timeLabels.push(now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0'));
+            if (timeLabels.length > 20) timeLabels.shift();
+
+            let actP = null, reactP = null, v1 = null, v2 = null, v3 = null, c1 = null, c2 = null, c3 = null;
+            const hidden = document.getElementById('hidden_obis').value.split(',');
+
+            for (const [key, val] of Object.entries(data)) {
+                if (key === 'uptime_s' || key === 'uptime_ms') continue;
+                
+                if (key === '1_0_1_7_0_255') actP = val;
+                if (key === '1_0_3_7_0_255') reactP = val;
+                if (key === '1_0_32_7_0_255') v1 = val;
+                if (key === '1_0_52_7_0_255') v2 = val;
+                if (key === '1_0_72_7_0_255') v3 = val;
+                if (key === '1_0_31_7_0_255') c1 = val;
+                if (key === '1_0_51_7_0_255') c2 = val;
+                if (key === '1_0_71_7_0_255') c3 = val;
+                
+                const obisStr = key.replace(/_/g, '.');
+                if (hidden.includes(obisStr)) continue; // skip rendering if hidden
+
+                const displayName = obisNames[obisStr] || obisStr;
+                
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = '<h4>' + displayName + '</h4><div class="value">' + val + '</div>';
+                grid.appendChild(card);
+            }
+            
+            if (pData.active.length >= 20) pData.active.shift();
+            if (pData.reactive.length >= 20) pData.reactive.shift();
+            pData.active.push(actP !== null ? actP : (pData.active.length ? pData.active[pData.active.length-1] : 0));
+            pData.reactive.push(reactP !== null ? reactP : (pData.reactive.length ? pData.reactive[pData.reactive.length-1] : 0));
+            
+            if (vData.l1.length >= 20) vData.l1.shift();
+            if (vData.l2.length >= 20) vData.l2.shift();
+            if (vData.l3.length >= 20) vData.l3.shift();
+            vData.l1.push(v1 !== null ? v1 : (vData.l1.length ? vData.l1[vData.l1.length-1] : 230));
+            vData.l2.push(v2 !== null ? v2 : (vData.l2.length ? vData.l2[vData.l2.length-1] : 230));
+            vData.l3.push(v3 !== null ? v3 : (vData.l3.length ? vData.l3[vData.l3.length-1] : 230));
+
+            if (cData.l1.length >= 20) cData.l1.shift();
+            if (cData.l2.length >= 20) cData.l2.shift();
+            if (cData.l3.length >= 20) cData.l3.shift();
+            cData.l1.push(c1 !== null ? c1 : (cData.l1.length ? cData.l1[cData.l1.length-1] : 0));
+            cData.l2.push(c2 !== null ? c2 : (cData.l2.length ? cData.l2[cData.l2.length-1] : 0));
+            cData.l3.push(c3 !== null ? c3 : (cData.l3.length ? cData.l3[cData.l3.length-1] : 0));
+
+            pChart.update();
+            vChart.update();
+            cChart.update();
+
+        }).catch(e => console.log('Fetch error'));
+    }
+
+    function stripAnsi(str) {
+        return str.replace(/\x1b\[[0-9;]*m/g, '');
+    }
+
+    function fetchDebug() {
+        if (!document.getElementById('tab-debug').classList.contains('active')) return;
+        fetch('/api/debug').then(r => r.json()).then(data => {
+            if (data.hex) {
+                document.getElementById('debug_out').innerText = data.hex;
+                const d = document.getElementById('debug_out');
+                d.scrollTop = d.scrollHeight;
+            }
+            if (data.trace) {
+                document.getElementById('trace_out').innerText = stripAnsi(data.trace);
+                const to = document.getElementById('trace_out');
+                to.scrollTop = to.scrollHeight;
+            }
+        }).catch(e => console.log('Fetch error'));
+    }
+
+    function clearDebug() {
+        fetch('/api/debug?clear=1').then(() => {
+            document.getElementById('debug_out').innerText = 'Cleared.';
+            document.getElementById('trace_out').innerText = 'Cleared.';
+        });
+    }
+
+    window.onload = function() {
+        toggleMqtt();
+        toggleMeterSettings();
+        toggleAuth();
+        initChart();
+        
+        fetch('/api/config').then(r => r.json()).then(data => {
+            if(data.mqtt_tpl) document.getElementById('mqtt_tpl').value = data.mqtt_tpl;
+            else document.getElementById('mqtt_tpl').value = '{\n  "device_id": "{0.0.42.0.0.255}",\n  "power_active": {1.0.1.7.0.255},\n  "power_reactive": {1.0.3.7.0.255},\n  "voltage_l1": {1.0.32.7.0.255},\n  "voltage_l2": {1.0.52.7.0.255},\n  "voltage_l3": {1.0.72.7.0.255},\n  "current_l1": {1.0.31.7.0.255},\n  "current_l2": {1.0.51.7.0.255},\n  "current_l3": {1.0.71.7.0.255}\n}';
+            
+            if(data.meter_type) document.getElementById('meter_type').value = data.meter_type;
+            if(data.mqtt_en !== undefined) document.getElementById('mqtt_enable').checked = (data.mqtt_en === 1);
+            if(data.mqtt_uri) document.querySelector('[name="mqtt_uri"]').value = data.mqtt_uri;
+            if(data.mqtt_topic) document.querySelector('[name="mqtt_topic"]').value = data.mqtt_topic;
+            if(data.mqtt_user) document.querySelector('[name="mqtt_user"]').value = data.mqtt_user;
+            if(data.mqtt_pass) document.querySelector('[name="mqtt_pass"]').value = data.mqtt_pass;
+            if(data.auth) document.querySelector('[name="auth"]').value = data.auth;
+            if(data.pass) document.querySelector('[name="pass"]').value = data.pass;
+            if(data.parity) document.querySelector('[name="parity"]').value = data.parity;
+            if(data.baud) document.querySelector('[name="baud"]').value = data.baud;
+            if(data.client_addr) document.querySelector('[name="client_addr"]').value = data.client_addr;
+            if(data.server_logical) document.querySelector('[name="server_logical"]').value = data.server_logical;
+            if(data.server_physical) document.querySelector('[name="server_physical"]').value = data.server_physical;
+            
+            if(data.hidden_obis) {
+                document.getElementById('hidden_obis').value = data.hidden_obis;
+                const hiddenArr = data.hidden_obis.split(',');
+                document.querySelectorAll('#visibility_checks input').forEach(cb => {
+                    cb.checked = hiddenArr.includes(cb.value);
+                });
+            }
+
+            toggleMqtt();
+            toggleMeterSettings();
+            toggleAuth();
+        }).catch(e=>{});
+
+        fetch('/api/role').then(r => r.json()).then(data => {
+            if (data.role !== 'admin') {
+                document.querySelector('.tab[onclick="switchTab(\'config\')"]').style.display = 'none';
+                document.querySelector('.tab[onclick="switchTab(\'debug\')"]').style.display = 'none';
+                switchTab('dashboard');
+                setInterval(fetchDashboard, 5000);
+            } else {
+                setInterval(fetchDashboard, 5000);
+                setInterval(fetchDebug, 2000);
+            }
+        });
+    };
+
+    function exportConfig() {
+        const formData = new FormData(document.getElementById('config_form'));
+        const obj = {};
+        formData.forEach((value, key) => obj[key] = value);
+        
+        // Handle checkboxes (if unchecked, FormData omits them, so we must add them explicitly if missing)
+        document.querySelectorAll('#config_form input[type="checkbox"]').forEach(cb => {
+            obj[cb.name] = cb.checked ? "1" : "0";
+        });
+
+        const blob = new Blob([JSON.stringify(obj, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'dlms_config.json';
+        a.click();
+    }
+
+    function importConfig(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const obj = JSON.parse(e.target.result);
+                for (const key in obj) {
+                    const el = document.querySelector(`[name="${key}"]`);
+                    if (el) {
+                        if (el.type === 'checkbox') {
+                            el.checked = (obj[key] == 1 || obj[key] === 'on' || obj[key] === true);
+                        } else {
+                            el.value = obj[key];
+                        }
+                    }
+                }
+                toggleMqtt();
+                toggleMeterSettings();
+                toggleAuth();
+                alert('Configuration loaded successfully! Click Save & Reboot to apply.');
+            } catch (err) {
+                alert('Invalid JSON file.');
+            }
+            event.target.value = ''; // Reset file input
+        };
+        reader.readAsText(file);
+    }
+</script>
+</body>
+</html>

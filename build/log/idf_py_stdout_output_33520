@@ -1,0 +1,7 @@
+-- ccache will be used for faster recompilation
+-- Building ESP-IDF components for target esp32c3
+-- Configuring incomplete, errors occurred!
+See also "C:/Users/MakerLab/Projekti/DLMS/build/CMakeFiles/CMakeOutput.log".
+[0/1] Re-running CMake...
+FAILED: build.ninja 
+C:\Users\MakerLab\.espressif\tools\cmake\3.24.0\bin\cmake.exe --regenerate-during-build -SC:\Users\MakerLab\Projekti\DLMS -BC:\Users\MakerLab\Projekti\DLMS\build
