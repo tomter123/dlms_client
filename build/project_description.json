@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "dlms_meter",
-    "project_version":    "733de97-dirty",
+    "project_version":    "4c04a7f-dirty",
     "project_path":       "C:/Users/MakerLab/Projekti/DLMS",
     "idf_path":           "C:/Espressif/esp-idf",
     "build_dir":          "C:/Users/MakerLab/Projekti/DLMS/build",
@@ -1180,7 +1180,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "C:/Users/MakerLab/Projekti/DLMS/build/esp-idf/main/libmain.a",
-            "sources": [ "C:/Users/MakerLab/Projekti/DLMS/main/main.c" ],
+            "sources": [ "C:/Users/MakerLab/Projekti/DLMS/main/main.c", "C:/Users/MakerLab/Projekti/DLMS/main/ascii_parsers.c" ],
             "include_dirs": [ "." ]
         },
         "mbedtls": {

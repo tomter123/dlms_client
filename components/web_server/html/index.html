@@ -195,6 +195,38 @@
                     </div>
                 </div>
 
+                <!-- AM550 ASCII Settings -->
+                <div id="settings_am550_ascii" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Baud Rate (P1 Port)</label>
+                            <select name="am550_baud">
+                                <option value="115200" selected>115200</option>
+                                <option value="9600">9600</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- IEC62056-21 Settings -->
+                <div id="settings_iec62056_21" class="hidden">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Initial Baud Rate</label>
+                            <select name="iec_baud">
+                                <option value="300" selected>300</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Baud Rate</label>
+                            <select name="iec_target_baud">
+                                <option value="9600" selected>9600</option>
+                                <option value="4800">4800</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- M-Bus Settings -->
                 <div id="settings_mbus" class="hidden">
                     <div class="form-row">
@@ -324,6 +356,8 @@
         document.getElementById('settings_e570').style.display = (type === 'e570') ? 'block' : 'none';
         document.getElementById('settings_e450').style.display = (type === 'e450') ? 'block' : 'none';
         document.getElementById('settings_mbus').style.display = (type === 'mbus') ? 'block' : 'none';
+        document.getElementById('settings_am550_ascii').style.display = (type === 'am550_ascii') ? 'block' : 'none';
+        document.getElementById('settings_iec62056_21').style.display = (type === 'iec62056_21') ? 'block' : 'none';
     }
 
     function toggleAuth() {
@@ -503,6 +537,9 @@
             if(data.client_addr) document.querySelector('[name="client_addr"]').value = data.client_addr;
             if(data.server_logical) document.querySelector('[name="server_logical"]').value = data.server_logical;
             if(data.server_physical) document.querySelector('[name="server_physical"]').value = data.server_physical;
+            if(data.am550_baud) document.querySelector('[name="am550_baud"]').value = data.am550_baud;
+            if(data.iec_baud) document.querySelector('[name="iec_baud"]').value = data.iec_baud;
+            if(data.iec_target_baud) document.querySelector('[name="iec_target_baud"]').value = data.iec_target_baud;
             
             if(data.hidden_obis) {
                 document.getElementById('hidden_obis').value = data.hidden_obis;

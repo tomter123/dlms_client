@@ -78,11 +78,11 @@ void clear_trace_buf(void) {
 }
 
 
-#define DEBUG_BUF_SIZE 2048
-static uint8_t g_debug_buf[DEBUG_BUF_SIZE];
-static size_t g_debug_head = 0;
-static size_t g_debug_tail = 0;
-static SemaphoreHandle_t g_debug_mutex = NULL;
+#define DEBUG_BUF_SIZE 4096
+uint8_t g_debug_buf[DEBUG_BUF_SIZE];
+volatile int g_debug_head = 0;
+volatile int g_debug_tail = 0;
+SemaphoreHandle_t g_debug_mutex = NULL;
 
 static dlms_reading_t g_dashboard_readings[DLMS_MAX_OBIS_ENTRIES];
 static SemaphoreHandle_t g_readings_mutex = NULL;
@@ -230,6 +230,8 @@ void get_debug_json(char *buf, size_t max_len) {
 }
 
 void e450_push_task(void *pvParameters);
+extern void am550_ascii_task(void *pvParameters);
+extern void iec62056_21_task(void *pvParameters);
 
 /* â”€â”€â”€ Global DLMS Client Instance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 __attribute__((unused)) static dlms_client_t s_dlms_client;
@@ -372,11 +374,11 @@ void app_main(void)
     web_server_init();
 
     char meter_type[32] = "e450"; // default
-    nvs_handle_t nvs;
-    if (nvs_open("config", NVS_READONLY, &nvs) == ESP_OK) {
+    nvs_handle_t nvs_type;
+    if (nvs_open("config", NVS_READONLY, &nvs_type) == ESP_OK) {
         size_t len = sizeof(meter_type);
-        nvs_get_str(nvs, "meter_type", meter_type, &len);
-        nvs_close(nvs);
+        nvs_get_str(nvs_type, "meter_type", meter_type, &len);
+        nvs_close(nvs_type);
     }
     
     ESP_LOGI(TAG, "Selected meter type: %s", meter_type);
@@ -396,34 +398,42 @@ void app_main(void)
             nvs_get_u32(nvs_dlms, "client_addr", &client_addr_u32);
             nvs_get_u32(nvs_dlms, "server_logical", &server_logical_u32);
             nvs_get_u32(nvs_dlms, "server_physical", &server_physical_u32);
-            nvs_get_str(nvs_dlms, "auth", auth, &len); len = 64;
-            nvs_get_str(nvs_dlms, "pass", pass, &len);
+            nvs_get_str(nvs_dlms, "auth", auth, &len);
+            len = 64; nvs_get_str(nvs_dlms, "pass", pass, &len);
             nvs_close(nvs_dlms);
-            
-            uint16_t client_addr = client_addr_u32;
-            uint16_t server_logical = server_logical_u32;
-            uint16_t server_physical = server_physical_u32;
-            
-            ESP_LOGI(TAG, "E570 Config: Baud=%lu, Client=%u, ServerL=%u, ServerP=%u, Auth=%s", baud, client_addr, server_logical, server_physical, auth);
-            
-            // Set up UART correctly (use the dynamic baud rate)
-            uart_set_baudrate(UART_NUM_1, baud);
             
             dlms_client_config_t cfg = {
                 .uart_port = UART_NUM_1,
-                .client_address = client_addr,
-                .server_logical = server_logical,
-                .server_physical = server_physical,
+                .client_address = (uint8_t)client_addr_u32,
+                .server_logical = (uint16_t)server_logical_u32,
+                .server_physical = (uint16_t)server_physical_u32,
                 .auth_mode = strcmp(auth, "low") == 0 ? DLMS_AUTH_LOW : DLMS_AUTH_NONE
             };
-            strncpy(cfg.password, pass, sizeof(cfg.password)-1);
-            
+            if (cfg.auth_mode == DLMS_AUTH_LOW) {
+                strncpy(cfg.password, pass, sizeof(cfg.password) - 1);
+            }
             dlms_client_init(&s_dlms_client, &cfg);
-            xTaskCreate(dlms_client_poll_task, "dlms_poll", 8192, &s_dlms_client, 5, NULL);
+        } else {
+            // Default config
+            dlms_client_config_t cfg = {
+                .uart_port = UART_NUM_1,
+                .client_address = 0x10,
+                .server_logical = 0x0001,
+                .server_physical = 0x0011,
+                .auth_mode = DLMS_AUTH_NONE
+            };
+            dlms_client_init(&s_dlms_client, &cfg);
         }
-    } else {
+        xTaskCreate(dlms_client_poll_task, "dlms_poll", 8192, &s_dlms_client, 5, NULL);
+    } else if (strcmp(meter_type, "e450") == 0) {
         ESP_LOGI(TAG, "Starting E450 DLMS push listener task...");
         xTaskCreate(e450_push_task, "e450_push", 8192, NULL, 5, NULL);
+    } else if (strcmp(meter_type, "am550_ascii") == 0) {
+        ESP_LOGI(TAG, "Starting AM550 ASCII Push listener task...");
+        xTaskCreate(am550_ascii_task, "am550_ascii", 8192, NULL, 5, NULL);
+    } else if (strcmp(meter_type, "iec62056_21") == 0) {
+        ESP_LOGI(TAG, "Starting IEC62056-21 poll task...");
+        xTaskCreate(iec62056_21_task, "iec62056_21", 8192, NULL, 5, NULL);
     }
 
 

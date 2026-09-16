@@ -124,7 +124,8 @@ static esp_err_t post_handler(httpd_req_t *req) {
                          strcmp(p, "e450_baud") == 0 || strcmp(p, "e450_databits") == 0 || 
                          strcmp(p, "e450_stopbits") == 0 || strcmp(p, "mbus_baud") == 0 || 
                          strcmp(p, "mbus_addr") == 0 || strcmp(p, "mbus_databits") == 0 || 
-                         strcmp(p, "mbus_stopbits") == 0) {
+                         strcmp(p, "mbus_stopbits") == 0 || strcmp(p, "am550_baud") == 0 ||
+                         strcmp(p, "iec_baud") == 0 || strcmp(p, "iec_target_baud") == 0) {
                     nvs_set_u32(nvs, p, atoi(decoded));
                 }
             }
@@ -197,6 +198,9 @@ static esp_err_t api_config_handler(httpd_req_t *req) {
     uint32_t client_addr = 16;
     uint32_t server_logical = 1;
     uint32_t server_physical = 17;
+    uint32_t am550_baud = 115200;
+    uint32_t iec_baud = 300;
+    uint32_t iec_target_baud = 9600;
 
     if (nvs_open("config", NVS_READONLY, &nvs) == ESP_OK) {
         size_t len = 1024; nvs_get_str(nvs, "mqtt_tpl", mqtt_tpl, &len);
@@ -215,6 +219,9 @@ static esp_err_t api_config_handler(httpd_req_t *req) {
         nvs_get_u32(nvs, "client_addr", &client_addr);
         nvs_get_u32(nvs, "server_logical", &server_logical);
         nvs_get_u32(nvs, "server_physical", &server_physical);
+        nvs_get_u32(nvs, "am550_baud", &am550_baud);
+        nvs_get_u32(nvs, "iec_baud", &iec_baud);
+        nvs_get_u32(nvs, "iec_target_baud", &iec_target_baud);
         
         nvs_close(nvs);
     }
@@ -233,9 +240,11 @@ static esp_err_t api_config_handler(httpd_req_t *req) {
         "\"mqtt_uri\":\"%s\", \"mqtt_topic\":\"%s\", \"mqtt_user\":\"%s\", "
         "\"mqtt_pass\":\"%s\", \"auth\":\"%s\", \"pass\":\"%s\", "
         "\"parity\":\"%s\", \"baud\":%lu, \"client_addr\":%lu, "
-        "\"server_logical\":%lu, \"server_physical\":%lu, \"hidden_obis\":\"%s\"}",
+        "\"server_logical\":%lu, \"server_physical\":%lu, \"hidden_obis\":\"%s\", "
+        "\"am550_baud\":%lu, \"iec_baud\":%lu, \"iec_target_baud\":%lu}",
         escaped, meter_type, mqtt_en, mqtt_uri, mqtt_topic, mqtt_user, mqtt_pass, 
-        auth, pass, parity, baud, client_addr, server_logical, server_physical, hidden_obis);
+        auth, pass, parity, baud, client_addr, server_logical, server_physical, hidden_obis,
+        am550_baud, iec_baud, iec_target_baud);
         
     httpd_resp_set_type(req, "application/json");
     httpd_resp_send(req, buf, strlen(buf));
